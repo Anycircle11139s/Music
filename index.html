@@ -41,6 +41,10 @@
     border-radius: 10px;
     padding: 1.5rem 2rem;
     box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+    transition: background-color 0.3s ease;
+  }
+  section:hover {
+    background: #343463;
   }
   h2 {
     margin-top: 0;
@@ -56,6 +60,7 @@
     background: #3a3a6a;
     color: #e0e0f0;
     margin-top: 0.7rem;
+    cursor: pointer;
   }
 
   /* Sound Mixer */
@@ -73,10 +78,44 @@
   }
   .sound-control input[type="range"] {
     flex: 3 1 auto;
+    -webkit-appearance: none;
+    background: #44447a;
+    height: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .sound-control input[type="range"]:hover {
+    background: #5a5ab0;
+  }
+  /* Slider thumb */
+  .sound-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #8ab4f8;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 6px #7a90f8cc;
+    transition: background-color 0.3s ease;
+  }
+  .sound-control input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #8ab4f8;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 6px #7a90f8cc;
+    transition: background-color 0.3s ease;
   }
   .sound-control input[type="checkbox"] {
     transform: scale(1.3);
     cursor: pointer;
+    transition: filter 0.3s ease;
+  }
+  .sound-control input[type="checkbox"]:hover {
+    filter: brightness(1.3);
   }
 
   /* Timer */
@@ -86,6 +125,7 @@
     text-align: center;
     letter-spacing: 3px;
     margin: 1rem 0;
+    user-select: none;
   }
   .timer-buttons {
     display: flex;
@@ -142,6 +182,7 @@
     padding: 1rem 1.2rem;
     flex: 1 1 140px;
     text-align: center;
+    user-select: none;
   }
   .stat-card h3 {
     margin: 0 0 0.3rem 0;
@@ -162,6 +203,7 @@
     margin-top: 0.7rem;
     color: #b0b8ff;
     text-align: center;
+    user-select: none;
   }
 
   /* Responsive */
@@ -293,7 +335,7 @@
     music: ["cafe", "white"],
   };
 
-  // Suggestions text for each subject (can extend)
+  // Suggestions text for each subject
   const subjectSuggestions = {
     general: "Try a calming mix of Rain and White Noise to stay focused.",
     math: "White Noise and Library Murmurs help keep your mind sharp for numbers.",
@@ -336,6 +378,9 @@
   const suggestionDiv = document.getElementById("daily-suggestion");
   const subjectSelect = document.getElementById("subject-select");
 
+  // Flag to track if user interacted to allow sounds to play immediately on toggle
+  let userInteracted = false;
+
   // Load logs from localStorage
   function loadLogs() {
     let logs = JSON.parse(localStorage.getItem("studyLogs") || "[]");
@@ -363,13 +408,19 @@
     timerDisplay.textContent = formatTime(timerSeconds);
   }
 
-  // Play/Pause sounds according to toggles
+  // Play/Pause sounds according to toggles and user interaction
   function updateSounds() {
     for (const key in controls) {
       if (controls[key].toggle.checked) {
         sounds[key].audio.volume = parseFloat(controls[key].volume.value);
-        if (sounds[key].audio.paused) sounds[key].audio.play().catch(() => {});
-        controls[key].volume.disabled = false;
+        if (!sounds[key].audio.paused) continue; // already playing
+        // Play only if user interacted (started timer or toggled sound after interaction)
+        if (userInteracted) {
+          sounds[key].audio.play().catch(() => {});
+          controls[key].volume.disabled = false;
+        } else {
+          controls[key].volume.disabled = false;
+        }
       } else {
         sounds[key].audio.pause();
         controls[key].volume.disabled = true;
@@ -381,9 +432,12 @@
   function startTimer() {
     if (timerRunning) return;
     timerRunning = true;
+    userInteracted = true; // mark user interacted when timer starts
     startBtn.disabled = true;
     pauseBtn.disabled = false;
     resetBtn.disabled = false;
+
+    updateSounds();
 
     timerInterval = setInterval(() => {
       if (timerSeconds <= 0) {
@@ -419,6 +473,10 @@
     startBtn.disabled = false;
     pauseBtn.disabled = true;
     resetBtn.disabled = true;
+    // Pause all sounds on reset
+    for (const key in sounds) {
+      sounds[key].audio.pause();
+    }
   }
 
   // Log current session
@@ -465,65 +523,59 @@
     }
   }
 
-  // Render weekly stats (total mins per sound)
+  // Render weekly stats for each sound
   function renderStats() {
     const logs = loadLogs();
-    const soundTotals = {};
-    for (const key in sounds) soundTotals[key] = 0;
+    const stats = {};
+    for (const key in sounds) stats[key] = 0;
     for (const log of logs) {
-      if(log.sounds === "None") continue;
-      const logSounds = log.sounds.split(", ").map(s => s.trim());
-      for(const s of logSounds){
-        for(const key in sounds){
-          if(sounds[key].label === s) {
-            soundTotals[key] += log.duration;
-          }
+      for (const key in sounds) {
+        if (log.sounds.includes(sounds[key].label)) {
+          stats[key] += log.duration;
         }
       }
     }
     statsList.innerHTML = "";
-    for (const key in soundTotals) {
+    for (const key in stats) {
       const card = document.createElement("div");
-      card.className = "stat-card";
-      card.innerHTML = `<h3>${sounds[key].label}</h3><p>${soundTotals[key]} min</p>`;
+      card.classList.add("stat-card");
+      card.innerHTML = `<h3>${sounds[key].label}</h3><p>${stats[key]} min</p>`;
       statsList.appendChild(card);
     }
   }
 
-  // Update daily suggestion text and preset recommended sounds based on subject
+  // Update suggestion text & recommended sounds on subject change
   function updateSuggestion() {
     const subj = subjectSelect.value;
-    suggestionDiv.textContent = subjectSuggestions[subj] || subjectSuggestions.general;
-
-    // Automatically toggle recommended sounds, disable others
-    const recSounds = subjectRecommendations[subj] || subjectRecommendations.general;
-
+    suggestionDiv.textContent = subjectSuggestions[subj] || "";
+    // Automatically toggle recommended sounds ON, others OFF
+    const recommended = subjectRecommendations[subj] || [];
     for (const key in controls) {
-      if (recSounds.includes(key)) {
-        controls[key].toggle.checked = true;
-        controls[key].volume.disabled = false;
-        sounds[key].audio.volume = parseFloat(controls[key].volume.value);
-        if (sounds[key].audio.paused && timerRunning) sounds[key].audio.play().catch(() => {});
+      const wasChecked = controls[key].toggle.checked;
+      controls[key].toggle.checked = recommended.includes(key);
+      controls[key].volume.disabled = !recommended.includes(key);
+      // If user interacted, play sounds immediately
+      if(userInteracted && recommended.includes(key)) {
+        sounds[key].audio.play().catch(() => {});
       } else {
-        controls[key].toggle.checked = false;
-        controls[key].volume.disabled = true;
         sounds[key].audio.pause();
       }
     }
   }
 
-  // Event listeners for toggles & volumes
+  // Setup event listeners for controls
   for (const key in controls) {
+    // Toggle click: play/pause sounds immediately if user interacted
     controls[key].toggle.addEventListener("change", () => {
-      if (controls[key].toggle.checked) {
+      if(userInteracted && controls[key].toggle.checked) {
+        sounds[key].audio.play().catch(() => {});
         controls[key].volume.disabled = false;
-        sounds[key].audio.volume = parseFloat(controls[key].volume.value);
-        if (timerRunning) sounds[key].audio.play().catch(() => {});
       } else {
-        controls[key].volume.disabled = true;
         sounds[key].audio.pause();
+        controls[key].volume.disabled = true;
       }
     });
+    // Volume change
     controls[key].volume.addEventListener("input", () => {
       if (controls[key].toggle.checked) {
         sounds[key].audio.volume = parseFloat(controls[key].volume.value);
@@ -531,17 +583,17 @@
     });
   }
 
-  // Timer buttons
+  // Timer buttons event listeners
   startBtn.addEventListener("click", startTimer);
   pauseBtn.addEventListener("click", pauseTimer);
   resetBtn.addEventListener("click", resetTimer);
 
-  // Subject select change
+  // Subject selector listener
   subjectSelect.addEventListener("change", () => {
     updateSuggestion();
   });
 
-  // Init
+  // Init UI
   updateTimerDisplay();
   renderLogs();
   renderStats();
