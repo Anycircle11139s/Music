@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Study Music Library (Google Drive)</title>
+  <title>Study Music Library (Local Audio)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' };</script>
 </head>
@@ -44,24 +44,25 @@
   });
   if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
 
+  // Audio player speed control
   const player = document.getElementById('player');
   document.getElementById('speedSelect').addEventListener('change', e => {
     player.playbackRate = parseFloat(e.target.value);
   });
 
-  // Google Drive hosted tracks - replace FILE_ID_1, FILE_ID_2 with your actual Google Drive file IDs
+  // Define your tracks here — files must be uploaded to the /audio folder in your GitHub repo
   const tracks = [
     {
       title: "Focus Beats",
       subject: "Maths",
-      url: "https://drive.google.com/uc?export=download&id=1hptZCguWJIesi-5L0aTt32UrvNrb7D1P" // Replace FILE_ID_1 with your file ID
+      url: "audio/focus-beats.mp3"
     },
     {
-      title: "Focus Beats 2.0",
+      title: "Reading Chill",
       subject: "Languages",
-      url: "https://drive.google.com/uc?export=download&id=1hptZCguWJIesi-5L0aTt32UrvNrb7D1P" // Replace FILE_ID_2 with your file ID
+      url: "audio/reading-chill.mp3"
     }
-    // Add more tracks here as needed
+    // Add more tracks here as you upload more files
   ];
 
   function render() {
@@ -70,6 +71,7 @@
     filtersEl.innerHTML = '';
     tracksEl.innerHTML = '';
 
+    // Extract unique subjects for filter buttons
     const subjects = [...new Set(tracks.map(t => t.subject))];
     subjects.forEach(sub => {
       const btn = document.createElement('button');
@@ -79,9 +81,17 @@
       filtersEl.appendChild(btn);
     });
 
-    showSubject();
+    // Add "All" button to show all tracks
+    const allBtn = document.createElement('button');
+    allBtn.textContent = "All";
+    allBtn.className = 'px-3 py-1 rounded-full border border-gray-600 dark:border-gray-400 text-gray-600 dark:text-gray-300 hover:bg-gray-600 hover:text-white text-sm';
+    allBtn.addEventListener('click', () => showSubject());
+    filtersEl.prepend(allBtn);
+
+    showSubject(); // Show all initially
   }
 
+  // Show tracks filtered by subject; if no filter, show all
   function showSubject(filter) {
     const tracksEl = document.getElementById('tracks');
     tracksEl.innerHTML = '';
@@ -108,4 +118,3 @@
 </script>
 </body>
 </html>
-
