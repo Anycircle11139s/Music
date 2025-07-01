@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Silent Study Buddy</title>
+<style>
+  /* Reset & base */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1e1e2f;
+    color: #e0e0f0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  header {
+    background: #2c2c44;
+    padding: 1rem 2rem;
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: #a0a0ff;
+  }
+  main {
+    flex: 1;
+    padding: 1rem 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  section {
+    background: #29294a;
+    border-radius: 10px;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+  }
+  h2 {
+    margin-top: 0;
+    color: #8ab4f8;
+  }
+
+  /* Subject selector */
+  #subject-select {
+    font-size: 1.1rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    border: none;
+    background: #3a3a6a;
+    color: #e0e0f0;
+    margin-top: 0.7rem;
+  }
+
+  /* Sound Mixer */
+  .sound-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    gap: 1rem;
+  }
+  .sound-control label {
+    flex: 1 0 130px;
+    font-weight: 600;
+    user-select: none;
+  }
+  .sound-control input[type="range"] {
+    flex: 3 1 auto;
+  }
+  .sound-control input[type="checkbox"] {
+    transform: scale(1.3);
+    cursor: pointer;
+  }
+
+  /* Timer */
+  .timer-display {
+    font-size: 3.5rem;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 3px;
+    margin: 1rem 0;
+  }
+  .timer-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  button {
+    background: #4a4a8a;
+    border: none;
+    padding: 0.8rem 1.8rem;
+    font-size: 1.1rem;
+    color: #e0e0f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover:not(:disabled) {
+    background: #6c6ccf;
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  /* Logs Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #c0c0ff;
+    font-size: 0.9rem;
+  }
+  th, td {
+    border-bottom: 1px solid #444466;
+    padding: 0.5rem 0.7rem;
+    text-align: left;
+  }
+  th {
+    color: #a0a0ff;
+  }
+  tbody tr:hover {
+    background: #3a3a6a;
+  }
+
+  /* Stats */
+  .stats-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+  }
+  .stat-card {
+    background: #3a3a75;
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    flex: 1 1 140px;
+    text-align: center;
+  }
+  .stat-card h3 {
+    margin: 0 0 0.3rem 0;
+    font-size: 1.1rem;
+    color: #c0c0ff;
+  }
+  .stat-card p {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0;
+    color: #e0e0ff;
+  }
+
+  /* Daily suggestion */
+  .suggestion {
+    font-style: italic;
+    font-size: 1.1rem;
+    margin-top: 0.7rem;
+    color: #b0b8ff;
+    text-align: center;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    main {
+      padding: 1rem;
+    }
+    .sound-control label {
+      flex: 1 0 100px;
+      font-size: 0.9rem;
+    }
+    .timer-display {
+      font-size: 2.8rem;
+    }
+  }
+</style>
+</head>
+<body>
+<header>Silent Study Buddy</header>
+<main>
+
+  <section id="subject-section">
+    <h2>Select Your Subject</h2>
+    <select id="subject-select" aria-label="Select subject">
+      <option value="general">General</option>
+      <option value="math">Math</option>
+      <option value="science">Science</option>
+      <option value="english">English</option>
+      <option value="history">History</option>
+      <option value="language">Language</option>
+      <option value="art">Art</option>
+      <option value="music">Music</option>
+    </select>
+  </section>
+
+  <section id="mixer-section">
+    <h2>Ambient Sound Mixer</h2>
+    <div class="sound-control">
+      <label for="rain-toggle">Rain</label>
+      <input type="checkbox" id="rain-toggle" />
+      <input type="range" id="rain-volume" min="0" max="1" step="0.01" value="0.5" disabled />
+    </div>
+    <div class="sound-control">
+      <label for="cafe-toggle">Coffee Shop</label>
+      <input type="checkbox" id="cafe-toggle" />
+      <input type="range" id="cafe-volume" min="0" max="1" step="0.01" value="0.5" disabled />
+    </div>
+    <div class="sound-control">
+      <label for="white-toggle">White Noise</label>
+      <input type="checkbox" id="white-toggle" />
+      <input type="range" id="white-volume" min="0" max="1" step="0.01" value="0.5" disabled />
+    </div>
+    <div class="sound-control">
+      <label for="library-toggle">Library Murmurs</label>
+      <input type="checkbox" id="library-toggle" />
+      <input type="range" id="library-volume" min="0" max="1" step="0.01" value="0.5" disabled />
+    </div>
+  </section>
+
+  <section id="timer-section">
+    <h2>Study Timer</h2>
+    <div class="timer-display" id="timer-display">25:00</div>
+    <div class="timer-buttons">
+      <button id="start-btn">Start</button>
+      <button id="pause-btn" disabled>Pause</button>
+      <button id="reset-btn" disabled>Reset</button>
+    </div>
+  </section>
+
+  <section id="logs-section">
+    <h2>Study Sessions Log (Last 7 days)</h2>
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Duration</th><th>Sounds Played</th></tr>
+      </thead>
+      <tbody id="logs-body">
+        <!-- Logs inserted here -->
+      </tbody>
+    </table>
+  </section>
+
+  <section id="stats-section">
+    <h2>Weekly Sound Usage Stats</h2>
+    <div class="stats-list" id="stats-list">
+      <!-- Stats cards inserted here -->
+    </div>
+  </section>
+
+  <section id="suggestion-section">
+    <h2>Today's Sound Mix Suggestion</h2>
+    <div class="suggestion" id="daily-suggestion"></div>
+  </section>
+</main>
+
+<script>
+  // Audio files (royalty-free / public domain)
+  const sounds = {
+    rain: {
+      label: "Rain",
+      url: "https://cdn.pixabay.com/download/audio/2022/03/17/audio_2f69b7cefa.mp3?filename=rain-ambient-6113.mp3",
+      audio: new Audio(),
+    },
+    cafe: {
+      label: "Coffee Shop",
+      url: "https://cdn.pixabay.com/download/audio/2022/02/14/audio_8c04a4f677.mp3?filename=coffee-shop-ambience-7209.mp3",
+      audio: new Audio(),
+    },
+    white: {
+      label: "White Noise",
+      url: "https://cdn.pixabay.com/download/audio/2022/03/10/audio_9a17957ecb.mp3?filename=white-noise-6110.mp3",
+      audio: new Audio(),
+    },
+    library: {
+      label: "Library Murmurs",
+      url: "https://cdn.pixabay.com/download/audio/2022/03/11/audio_0bc3fa7db3.mp3?filename=library-ambience-6111.mp3",
+      audio: new Audio(),
+    },
+  };
+
+  // Subject-based recommended sounds
+  const subjectRecommendations = {
+    general: ["rain", "white"],
+    math: ["white", "library"],
+    science: ["rain", "library"],
+    english: ["cafe", "rain"],
+    history: ["cafe", "library"],
+    language: ["cafe", "rain"],
+    art: ["rain", "white"],
+    music: ["cafe", "white"],
+  };
+
+  // Suggestions text for each subject (can extend)
+  const subjectSuggestions = {
+    general: "Try a calming mix of Rain and White Noise to stay focused.",
+    math: "White Noise and Library Murmurs help keep your mind sharp for numbers.",
+    science: "Rain and Library sounds create a great lab-like study environment.",
+    english: "Coffee Shop ambiance and Rain sounds enhance creativity and focus.",
+    history: "Combine Coffee Shop and Library sounds to immerse yourself in stories.",
+    language: "Coffee Shop with a hint of Rain keeps you relaxed while learning languages.",
+    art: "A gentle mix of Rain and White Noise sparks your creativity.",
+    music: "Coffee Shop sounds with White Noise help maintain rhythm and concentration.",
+  };
+
+  // Initialize audios
+  for (const key in sounds) {
+    sounds[key].audio.src = sounds[key].url;
+    sounds[key].audio.loop = true;
+    sounds[key].audio.volume = 0.5;
+  }
+
+  // Elements
+  const controls = {};
+  for (const key in sounds) {
+    controls[key] = {
+      toggle: document.getElementById(key + "-toggle"),
+      volume: document.getElementById(key + "-volume"),
+    };
+  }
+
+  // Timer vars
+  let timerSeconds = 25 * 60; // default 25 mins
+  let timerInterval = null;
+  let timerRunning = false;
+  const timerDisplay = document.getElementById("timer-display");
+  const startBtn = document.getElementById("start-btn");
+  const pauseBtn = document.getElementById("pause-btn");
+  const resetBtn = document.getElementById("reset-btn");
+
+  // Logs and stats elements
+  const logsBody = document.getElementById("logs-body");
+  const statsList = document.getElementById("stats-list");
+  const suggestionDiv = document.getElementById("daily-suggestion");
+  const subjectSelect = document.getElementById("subject-select");
+
+  // Load logs from localStorage
+  function loadLogs() {
+    let logs = JSON.parse(localStorage.getItem("studyLogs") || "[]");
+    // Keep last 7 days only
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    logs = logs.filter(log => new Date(log.date).getTime() >= weekAgo);
+    localStorage.setItem("studyLogs", JSON.stringify(logs));
+    return logs;
+  }
+
+  // Save logs
+  function saveLogs(logs) {
+    localStorage.setItem("studyLogs", JSON.stringify(logs));
+  }
+
+  // Format time mm:ss
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+  }
+
+  // Update timer display
+  function updateTimerDisplay() {
+    timerDisplay.textContent = formatTime(timerSeconds);
+  }
+
+  // Play/Pause sounds according to toggles
+  function updateSounds() {
+    for (const key in controls) {
+      if (controls[key].toggle.checked) {
+        sounds[key].audio.volume = parseFloat(controls[key].volume.value);
+        if (sounds[key].audio.paused) sounds[key].audio.play().catch(() => {});
+        controls[key].volume.disabled = false;
+      } else {
+        sounds[key].audio.pause();
+        controls[key].volume.disabled = true;
+      }
+    }
+  }
+
+  // Start timer
+  function startTimer() {
+    if (timerRunning) return;
+    timerRunning = true;
+    startBtn.disabled = true;
+    pauseBtn.disabled = false;
+    resetBtn.disabled = false;
+
+    timerInterval = setInterval(() => {
+      if (timerSeconds <= 0) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+        alert("Time's up! Great job!");
+        logSession();
+        resetTimer();
+        return;
+      }
+      timerSeconds--;
+      updateTimerDisplay();
+    }, 1000);
+  }
+
+  // Pause timer
+  function pauseTimer() {
+    if (!timerRunning) return;
+    clearInterval(timerInterval);
+    timerRunning = false;
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+  }
+
+  // Reset timer
+  function resetTimer() {
+    clearInterval(timerInterval);
+    timerSeconds = 25 * 60;
+    updateTimerDisplay();
+    timerRunning = false;
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    resetBtn.disabled = true;
+  }
+
+  // Log current session
+  function logSession() {
+    const logs = loadLogs();
+    const dateStr = new Date().toISOString().slice(0,10);
+    const durationMins = 25 - Math.floor(timerSeconds / 60);
+    const soundsUsed = Object.keys(controls)
+      .filter(key => controls[key].toggle.checked)
+      .map(key => sounds[key].label)
+      .join(", ") || "None";
+
+    // If duration 0, don't log
+    if(durationMins <= 0) return;
+
+    logs.push({
+      date: dateStr,
+      duration: durationMins,
+      sounds: soundsUsed,
+    });
+
+    saveLogs(logs);
+    renderLogs();
+    renderStats();
+  }
+
+  // Render logs table
+  function renderLogs() {
+    const logs = loadLogs();
+    logsBody.innerHTML = "";
+    logs.sort((a,b) => new Date(b.date) - new Date(a.date));
+    for (const log of logs) {
+      const tr = document.createElement("tr");
+      const tdDate = document.createElement("td");
+      tdDate.textContent = log.date;
+      const tdDuration = document.createElement("td");
+      tdDuration.textContent = log.duration + " min";
+      const tdSounds = document.createElement("td");
+      tdSounds.textContent = log.sounds;
+      tr.appendChild(tdDate);
+      tr.appendChild(tdDuration);
+      tr.appendChild(tdSounds);
+      logsBody.appendChild(tr);
+    }
+  }
+
+  // Render weekly stats (total mins per sound)
+  function renderStats() {
+    const logs = loadLogs();
+    const soundTotals = {};
+    for (const key in sounds) soundTotals[key] = 0;
+    for (const log of logs) {
+      if(log.sounds === "None") continue;
+      const logSounds = log.sounds.split(", ").map(s => s.trim());
+      for(const s of logSounds){
+        for(const key in sounds){
+          if(sounds[key].label === s) {
+            soundTotals[key] += log.duration;
+          }
+        }
+      }
+    }
+    statsList.innerHTML = "";
+    for (const key in soundTotals) {
+      const card = document.createElement("div");
+      card.className = "stat-card";
+      card.innerHTML = `<h3>${sounds[key].label}</h3><p>${soundTotals[key]} min</p>`;
+      statsList.appendChild(card);
+    }
+  }
+
+  // Update daily suggestion text and preset recommended sounds based on subject
+  function updateSuggestion() {
+    const subj = subjectSelect.value;
+    suggestionDiv.textContent = subjectSuggestions[subj] || subjectSuggestions.general;
+
+    // Automatically toggle recommended sounds, disable others
+    const recSounds = subjectRecommendations[subj] || subjectRecommendations.general;
+
+    for (const key in controls) {
+      if (recSounds.includes(key)) {
+        controls[key].toggle.checked = true;
+        controls[key].volume.disabled = false;
+        sounds[key].audio.volume = parseFloat(controls[key].volume.value);
+        if (sounds[key].audio.paused && timerRunning) sounds[key].audio.play().catch(() => {});
+      } else {
+        controls[key].toggle.checked = false;
+        controls[key].volume.disabled = true;
+        sounds[key].audio.pause();
+      }
+    }
+  }
+
+  // Event listeners for toggles & volumes
+  for (const key in controls) {
+    controls[key].toggle.addEventListener("change", () => {
+      if (controls[key].toggle.checked) {
+        controls[key].volume.disabled = false;
+        sounds[key].audio.volume = parseFloat(controls[key].volume.value);
+        if (timerRunning) sounds[key].audio.play().catch(() => {});
+      } else {
+        controls[key].volume.disabled = true;
+        sounds[key].audio.pause();
+      }
+    });
+    controls[key].volume.addEventListener("input", () => {
+      if (controls[key].toggle.checked) {
+        sounds[key].audio.volume = parseFloat(controls[key].volume.value);
+      }
+    });
+  }
+
+  // Timer buttons
+  startBtn.addEventListener("click", startTimer);
+  pauseBtn.addEventListener("click", pauseTimer);
+  resetBtn.addEventListener("click", resetTimer);
+
+  // Subject select change
+  subjectSelect.addEventListener("change", () => {
+    updateSuggestion();
+  });
+
+  // Init
+  updateTimerDisplay();
+  renderLogs();
+  renderStats();
+  updateSuggestion();
+
+</script>
+</body>
+</html>
