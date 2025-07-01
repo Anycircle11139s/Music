@@ -1,146 +1,151 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Study Music Player</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f5f7fa;
-      margin: 0;
-      padding: 2rem;
-      display: flex;
-      justify-content: center;
-    }
-    #player-container {
-      max-width: 420px;
-      width: 100%;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      padding: 1.5rem 2rem;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 1.5rem;
-      color: #333;
-    }
-    .track {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1.25rem;
-    }
-    .track label {
-      flex: 1;
-      font-weight: 600;
-      color: #444;
-    }
-    button.play-btn {
-      background-color: #4a90e2;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 0.5rem 1rem;
-      cursor: pointer;
-      margin-right: 1rem;
-      min-width: 70px;
-      font-weight: bold;
-      transition: background-color 0.3s ease;
-    }
-    button.play-btn:hover {
-      background-color: #357abd;
-    }
-    input[type="range"] {
-      width: 120px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-  <div id="player-container">
-    <h2>Study Music Player</h2>
-    <div class="track" data-sound="rain">
-      <label for="volume-rain">Rain</label>
-      <button class="play-btn" id="play-rain">Play</button>
-      <input type="range" id="volume-rain" min="0" max="1" step="0.01" value="0.5" />
-    </div>
-    <div class="track" data-sound="coffee_shop">
-      <label for="volume-coffee_shop">Coffee Shop</label>
-      <button class="play-btn" id="play-coffee_shop">Play</button>
-      <input type="range" id="volume-coffee_shop" min="0" max="1" step="0.01" value="0.5" />
-    </div>
-    <div class="track" data-sound="white_noise">
-      <label for="volume-white_noise">White Noise</label>
-      <button class="play-btn" id="play-white_noise">Play</button>
-      <input type="range" id="volume-white_noise" min="0" max="1" step="0.01" value="0.5" />
-    </div>
-    <div class="track" data-sound="library">
-      <label for="volume-library">Library Murmurs</label>
-      <button class="play-btn" id="play-library">Play</button>
-      <input type="range" id="volume-library" min="0" max="1" step="0.01" value="0.5" />
-    </div>
-  </div>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study Music Library</title>
+  <!-- Tailwind via CDN (no build step needed) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Dark‑mode colours -->
   <script>
-    // Audio objects, load files from root folder
-    const sounds = {
-      rain: new Audio('./rain.mp3'),
-      coffee_shop: new Audio('./coffee_shop.mp3'),
-      white_noise: new Audio('./white_noise.mp3'),
-      library: new Audio('./library.mp3'),
-    };
+    tailwind.config = { darkMode: 'class' };
+  </script>
+</head>
+<body class="bg‑gray‑100 dark:bg‑gray‑900 min‑h‑screen flex flex‑col text‑gray‑900 dark:text‑gray‑100">
+  <!-- Header -->
+  <header class="bg‑indigo‑600 dark:bg‑indigo‑700 text‑white shadow p‑4">
+    <div class="container mx‑auto flex items‑center gap‑4">
+      <h1 class="text‑2xl font‑semibold">Study Music Library</h1>
+      <button id="darkToggle" class="ml‑auto p‑2 rounded‑lg border border‑white/30 hover:bg‑white/10" title="Toggle dark mode">🌙</button>
+    </div>
+  </header>
 
-    // Store current playing audio to stop when new one plays
-    let currentPlaying = null;
+  <!-- Main -->
+  <main class="flex‑1 container mx‑auto p‑4">
+    <!-- Upload & subject selector -->
+    <div class="flex flex‑wrap gap‑4 items‑center mb‑6">
+      <label class="block">
+        <span class="sr‑only">Upload MP3s</span>
+        <input type="file" id="uploader" accept="audio/mp3" multiple class="file:mr‑4 file:py‑2 file:px‑4 file:border‑0 file:text‑sm file:bg‑indigo‑50 file:text‑indigo‑700 hover:file:bg‑indigo‑100 cursor‑pointer" />
+      </label>
+      <select id="subjectSelect" class="border rounded‑lg p‑2 bg‑white dark:bg‑gray‑800 dark:border‑gray‑700">
+        <option value="">Choose subject</option>
+        <option>Maths</option>
+        <option>Physics</option>
+        <option>Chemistry</option>
+        <option>Languages</option>
+        <option>Other</option>
+      </select>
+    </div>
 
-    // Play/pause toggle handler
-    function togglePlay(soundKey, btn) {
-      const audio = sounds[soundKey];
-      if (currentPlaying && currentPlaying !== audio) {
-        currentPlaying.pause();
-        // Reset previous play button text
-        document.querySelectorAll('button.play-btn').forEach(b => {
-          if (b !== btn) b.textContent = 'Play';
-        });
+    <!-- Dynamic subject filter buttons -->
+    <div id="filters" class="flex flex‑wrap gap‑2 mb‑4"></div>
+
+    <!-- Track cards grid -->
+    <div id="tracks" class="grid grid‑cols‑1 sm:grid‑cols‑2 lg:grid‑cols‑3 gap‑6"></div>
+  </main>
+
+  <!-- Sticky footer player -->
+  <footer class="bg‑white dark:bg‑gray‑800 border‑t dark:border‑gray‑700 shadow‑inner p‑4 sticky bottom‑0">
+    <div class="container mx‑auto flex items‑center gap‑4">
+      <audio id="player" controls class="flex‑1 w‑full"></audio>
+      <label class="text‑sm flex items‑center gap‑1">
+        Speed
+        <select id="speedSelect" class="border rounded‑md p‑1 bg‑white dark:bg‑gray‑700 dark:border‑gray‑600 text‑sm">
+          <option value="0.75">0.75×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.25">1.25×</option>
+          <option value="1.5">1.5×</option>
+        </select>
+      </label>
+    </div>
+  </footer>
+
+  <!-- Main logic -->
+  <script>
+  // ====== Theme toggle ======
+  const darkToggle = document.getElementById('darkToggle');
+  darkToggle.addEventListener('click', () => {
+    document.documentElement.classList.toggle('dark');
+    localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  });
+  if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
+
+  // ====== Audio player controls ======
+  const player = document.getElementById('player');
+  document.getElementById('speedSelect').addEventListener('change', e => {
+    player.playbackRate = parseFloat(e.target.value);
+  });
+
+  // ====== Track data ======
+  let tracks = [];
+
+  async function loadRemoteList() {
+    try {
+      const res = await fetch('tracks.json');
+      if (res.ok) {
+        tracks = await res.json();
       }
-
-      if (audio.paused) {
-        audio.play();
-        btn.textContent = 'Pause';
-        currentPlaying = audio;
-      } else {
-        audio.pause();
-        btn.textContent = 'Play';
-        if (currentPlaying === audio) currentPlaying = null;
-      }
+    } catch (err) {
+      console.info('No remote track list found – starting empty.');
     }
+    render();
+  }
+  loadRemoteList();
 
-    // Setup event listeners
-    document.querySelectorAll('.track').forEach(track => {
-      const soundKey = track.dataset.sound;
-      const playBtn = track.querySelector('button.play-btn');
-      const volumeSlider = track.querySelector('input[type="range"]');
-      const audio = sounds[soundKey];
-
-      // Set initial volume
-      audio.volume = volumeSlider.value;
-
-      // Play/pause button click
-      playBtn.addEventListener('click', () => togglePlay(soundKey, playBtn));
-
-      // Volume slider input
-      volumeSlider.addEventListener('input', e => {
-        audio.volume = e.target.value;
-      });
-
-      // When audio ends, reset button text & currentPlaying
-      audio.addEventListener('ended', () => {
-        playBtn.textContent = 'Play';
-        if (currentPlaying === audio) currentPlaying = null;
-      });
+  // ====== Local file uploads ======
+  const uploader = document.getElementById('uploader');
+  uploader.addEventListener('change', e => {
+    const subject = document.getElementById('subjectSelect').value || 'Uncategorised';
+    [...e.target.files].forEach(file => {
+      const url = URL.createObjectURL(file);
+      tracks.push({ title: file.name.replace(/\.mp3$/i, ''), subject, url, local: true });
     });
+    render();
+    uploader.value = '';
+  });
+
+  // ====== UI helpers ======
+  function render() {
+    const filtersEl = document.getElementById('filters');
+    const tracksEl = document.getElementById('tracks');
+    filtersEl.innerHTML = '';
+    tracksEl.innerHTML = '';
+
+    const subjects = [...new Set(tracks.map(t => t.subject))];
+    subjects.forEach(sub => {
+      const btn = document.createElement('button');
+      btn.textContent = sub;
+      btn.className = 'px‑3 py‑1 rounded‑full border border‑indigo‑600 dark:border‑indigo‑400 text‑indigo‑600 dark:text‑indigo‑300 hover:bg‑indigo‑600 hover:text‑white text‑sm';
+      btn.addEventListener('click', () => showSubject(sub));
+      filtersEl.appendChild(btn);
+    });
+
+    showSubject();
+  }
+
+  function showSubject(filter) {
+    const tracksEl = document.getElementById('tracks');
+    tracksEl.innerHTML = '';
+
+    tracks.filter(t => !filter || t.subject === filter).forEach(track => {
+      const card = document.createElement('div');
+      card.className = 'bg‑white dark:bg‑gray‑700 rounded‑xl shadow p‑4 flex flex‑col';
+      card.innerHTML = `
+        <h3 class="font‑semibold mb‑1 truncate">${track.title}</h3>
+        <p class="text‑xs text‑gray‑500 dark:text‑gray‑300 mb‑4">${track.subject}</p>
+        <button class="mt‑auto px‑3 py‑2 rounded‑lg bg‑indigo‑600 hover:bg‑indigo‑700 text‑white w‑full">Play</button>
+        <a class="mt‑2 text‑xs text‑indigo‑500 hover:underline ${track.local ? 'hidden' : ''}" href="${track.url || ''}" download>Download</a>`;
+
+      const playBtn = card.querySelector('button');
+      playBtn.addEventListener('click', () => {
+        player.src = track.url;
+        player.play();
+      });
+      tracksEl.appendChild(card);
+    });
+  }
   </script>
 </body>
 </html>
+
