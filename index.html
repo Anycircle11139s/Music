@@ -52,7 +52,8 @@
 
   <!-- ───────────────────── LOGIC ───────────────────── -->
   <script>
-    /* -------- Dark‑mode toggle -------- */
+    const slugify = str => str.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
     const darkToggle = document.getElementById('darkToggle');
     darkToggle.onclick = () => {
       document.documentElement.classList.toggle('dark');
@@ -60,35 +61,28 @@
     };
     if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
 
-    /* -------- Elements -------- */
     const player = new Audio();
-    const playBtn   = document.getElementById('playPause');
-    const loopBtn   = document.getElementById('loopToggle');
-    const progBar   = document.getElementById('progressBar');
-    const progFill  = document.getElementById('progressFill');
+    const playBtn = document.getElementById('playPause');
+    const loopBtn = document.getElementById('loopToggle');
+    const progBar = document.getElementById('progressBar');
+    const progFill = document.getElementById('progressFill');
     const curTimeEl = document.getElementById('currentTime');
     const totTimeEl = document.getElementById('totalTime');
 
-    // volume & speed
     document.getElementById('volumeRange').oninput = e => player.volume = e.target.value;
     document.getElementById('speedSelect').oninput = e => player.playbackRate = parseFloat(e.target.value);
 
-    // play / pause toggle
     playBtn.onclick = () => {
-      if (player.src) {
-        player.paused ? player.play() : player.pause();
-      }
+      if (player.src) player.paused ? player.play() : player.pause();
     };
-    player.onplay  = () => playBtn.textContent = '⏸️';
+    player.onplay = () => playBtn.textContent = '⏸️';
     player.onpause = () => playBtn.textContent = '▶️';
 
-    // loop toggle
     loopBtn.onclick = () => {
       player.loop = !player.loop;
       loopBtn.classList.toggle('active', player.loop);
     };
 
-    // progress bar update
     player.ontimeupdate = () => {
       const pct = (player.currentTime / player.duration) * 100;
       progFill.style.width = pct + '%';
@@ -103,45 +97,42 @@
       player.currentTime = pct * player.duration;
     };
 
-    // keyboard shortcuts
     document.addEventListener('keydown', e => {
-      if (e.target.matches('input, select')) return; // ignore form inputs
+      if (e.target.matches('input, select')) return;
       if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
       if (e.key.toLowerCase() === 'l') loopBtn.click();
       if (e.code === 'ArrowRight') player.currentTime = Math.min(player.duration, player.currentTime + 5);
       if (e.code === 'ArrowLeft')  player.currentTime = Math.max(0, player.currentTime - 5);
     });
 
-    /* -------- Track catalogue -------- */
     const tracks = [
-      { title: 'Math Focus Beats',  subject: 'Maths',   url: 'focus-beats.mp3', added: '2025-06-01' },
-      { title: 'English Lock‑In',   subject: 'English', url: 'SUPER FOCUS [ Flow State Music ] Binaural Beats 40Hz ★ Ambient Study Music to Concentrate (mp3cut.net).mp3', added: '2025-07-01' }
+      { title: 'Math Focus Beats', subject: 'Maths', url: 'focus-beats.mp3', added: '2025-06-01' },
+      { title: 'English Lock‑In', subject: 'English', url: 'SUPER FOCUS [ Flow State Music ] Binaural Beats 40Hz ★ Ambient Study Music to Concentrate (mp3cut.net).mp3', added: '2025-07-01' }
     ];
-    // store metadata durations
     const durationCache = {};
 
-    /* -------- Render helpers -------- */
     const filtersEl = document.getElementById('filters');
-    const tracksEl  = document.getElementById('tracks');
+    const tracksEl = document.getElementById('tracks');
     const searchBox = document.getElementById('searchBox');
-    const sortSel   = document.getElementById('sortSelect');
+    const sortSel = document.getElementById('sortSelect');
 
     searchBox.oninput = renderList;
-    sortSel.onchange  = renderList;
+    sortSel.onchange = renderList;
 
     function buildFilters() {
       filtersEl.innerHTML = '';
       const allBtn = makeFilterBtn('All');
       allBtn.classList.add('active');
       filtersEl.appendChild(allBtn);
-      ;[...new Set(tracks.map(t => t.subject))].forEach(sub => filtersEl.appendChild(makeFilterBtn(sub)));
+      [...new Set(tracks.map(t => t.subject))].forEach(sub => filtersEl.appendChild(makeFilterBtn(sub)));
     }
+
     function makeFilterBtn(text) {
       const btn = document.createElement('button');
       btn.textContent = text;
       btn.className = 'filter-btn';
       btn.onclick = () => {
-        document.querySelectorAll('#filters .filter-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('#filters .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         renderList();
       };
@@ -151,58 +142,61 @@
     function renderList() {
       const activeFilter = document.querySelector('#filters .filter-btn.active')?.textContent;
       const q = searchBox.value.toLowerCase();
-      let list = tracks.filter(t => (!activeFilter || activeFilter==='All' || t.subject===activeFilter) && t.title.toLowerCase().includes(q));
-      switch(sortSel.value){
-        case 'alpha':      list.sort((a,b)=>a.title.localeCompare(b.title)); break;
-        case 'alpha-desc': list.sort((a,b)=>b.title.localeCompare(a.title)); break;
-        case 'subject':    list.sort((a,b)=>a.subject.localeCompare(b.subject)||a.title.localeCompare(b.title)); break;
+      let list = tracks.filter(t => (!activeFilter || activeFilter === 'All' || t.subject === activeFilter) && t.title.toLowerCase().includes(q));
+      switch (sortSel.value) {
+        case 'alpha': list.sort((a, b) => a.title.localeCompare(b.title)); break;
+        case 'alpha-desc': list.sort((a, b) => b.title.localeCompare(a.title)); break;
+        case 'subject': list.sort((a, b) => a.subject.localeCompare(b.subject) || a.title.localeCompare(b.title)); break;
       }
-      tracksEl.innerHTML='';
-      list.forEach(track=>tracksEl.appendChild(buildCard(track)));
+      tracksEl.innerHTML = '';
+      list.forEach(track => tracksEl.appendChild(buildCard(track)));
     }
 
-    function buildCard(track){
+    function buildCard(track) {
+      const slug = slugify(track.title);
       const card = document.createElement('div');
-      card.className='card';
-      card.innerHTML=`<div class="card-progress" id="prog-${track.title}"></div>
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-progress" id="prog-${slug}"></div>
         <h3 class="card-title">${track.title}</h3>
         <p class="card-sub">${track.subject}</p>
-        <p class="card-duration" id="dur-${track.title}">--:--</p>
+        <p class="card-duration" id="dur-${slug}">--:--</p>
         <button class="play-btn">▶️ Play</button>`;
+
       const btn = card.querySelector('button');
-      btn.onclick = ()=>{
-        playTrack(track, card);
-      };
-      // fetch duration once
-      if(!durationCache[track.url]){
-        const tmp=new Audio(track.url);
-        tmp.onloadedmetadata=()=>{
-          durationCache[track.url]=tmp.duration;
-          card.querySelector(`#dur-${track.title}`).textContent=formatTime(tmp.duration);
+      btn.onclick = () => playTrack(track, card);
+
+      if (!durationCache[track.url]) {
+        const tmp = new Audio(track.url);
+        tmp.onloadedmetadata = () => {
+          durationCache[track.url] = tmp.duration;
+          const durEl = card.querySelector(`#dur-${slug}`);
+          if (durEl) durEl.textContent = formatTime(tmp.duration);
         };
-      }else{
-        card.querySelector(`#dur-${track.title}`).textContent=formatTime(durationCache[track.url]);
+      } else {
+        card.querySelector(`#dur-${slug}`).textContent = formatTime(durationCache[track.url]);
       }
+
       return card;
     }
 
-    function playTrack(track, card){
-      player.src=track.url;
+    function playTrack(track, card) {
+      player.src = track.url;
       player.play();
-      document.querySelectorAll('.card-progress').forEach(el=>el.style.width='0%');
-      player.ontimeupdate=()=>{
-        const pct=(player.currentTime/player.duration)*100;
-        card.querySelector('.card-progress').style.width=pct+'%';
-        curTimeEl.textContent=formatTime(player.currentTime);
-        totTimeEl.textContent=formatTime(player.duration);
-        progFill.style.width=pct+'%';
+      document.querySelectorAll('.card-progress').forEach(el => el.style.width = '0%');
+      player.ontimeupdate = () => {
+        const pct = (player.currentTime / player.duration) * 100;
+        card.querySelector('.card-progress').style.width = pct + '%';
+        curTimeEl.textContent = formatTime(player.currentTime);
+        totTimeEl.textContent = formatTime(player.duration);
+        progFill.style.width = pct + '%';
       };
     }
 
-    function formatTime(sec){
-      if(!sec||isNaN(sec))return '0:00';
-      const m=Math.floor(sec/60);
-      const s=Math.floor(sec%60).toString().padStart(2,'0');
+    function formatTime(sec) {
+      if (!sec || isNaN(sec)) return '0:00';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60).toString().padStart(2, '0');
       return `${m}:${s}`;
     }
 
@@ -211,3 +205,4 @@
   </script>
 </body>
 </html>
+
