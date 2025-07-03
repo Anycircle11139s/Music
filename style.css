@@ -1,0 +1,196 @@
+/* Clean, modern style for Study Music Library */
+
+:root {
+  --bg: #f8fafc;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --surface: #ffffff;
+  --surface-dark: #1e293b;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --border: #e2e8f0;
+  --radius: 0.75rem;
+  --transition: all 0.2s ease-in-out;
+}
+
+html.dark {
+  --bg: #0f172a;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --surface: #1e293b;
+  --surface-dark: #0f172a;
+  --primary: #818cf8;
+  --primary-hover: #a5b4fc;
+  --border: #334155;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  transition: var(--transition);
+}
+
+header {
+  background: var(--primary);
+  color: white;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.icon-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+main {
+  padding: 2rem;
+  max-width: 1100px;
+  margin: auto;
+}
+
+input[type="file"],
+select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  transition: var(--transition);
+  font-size: 0.95rem;
+}
+
+input[type="file"] {
+  cursor: pointer;
+}
+
+input[type="file"]::-webkit-file-upload-button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 500;
+}
+input[type="file"]::-webkit-file-upload-button:hover {
+  background: var(--primary-hover);
+}
+
+#filters {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+#filters button {
+  border: 1px solid var(--primary);
+  background: transparent;
+  color: var(--primary);
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+#filters button:hover,
+#filters button.active {
+  background: var(--primary);
+  color: white;
+}
+
+#tracks {
+  margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+
+.card-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+  color: var(--text);
+}
+
+.card-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.play-btn {
+  background: var(--primary);
+  color: white;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.play-btn:hover {
+  background: var(--primary-hover);
+}
+
+footer {
+  background: var(--surface);
+  padding: 1rem 2rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+audio {
+  width: 100%;
+  max-width: 600px;
+}
+
+footer label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+footer select {
+  font-size: 0.85rem;
+}
