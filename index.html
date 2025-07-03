@@ -9,8 +9,22 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 
-  <!-- Main stylesheet (no Tailwind needed) -->
   <link rel="stylesheet" href="style.css" />
+  <!-- Local style tweak for loop button so we don't touch style.css again -->
+  <style>
+    #loopToggle{
+      display:flex;align-items:center;justify-content:center;
+      width:2.25rem;height:2.25rem;
+      border:1px solid var(--clr-border);
+      background:transparent;
+      color:var(--clr-text);
+      border-radius:var(--radius);
+      cursor:pointer;
+      transition:var(--transition);
+    }
+    #loopToggle:hover,
+    #loopToggle.active{background:var(--clr-primary);color:#fff}
+  </style>
 </head>
 <body>
   <!-- ───────────────────── HEADER ───────────────────── -->
@@ -23,16 +37,14 @@
 
   <!-- ───────────────────── MAIN CONTENT ───────────────────── -->
   <main class="container">
-    <!-- Subject filter buttons will render here -->
     <div id="filters"></div>
-
-    <!-- Track cards grid -->
     <div id="tracks"></div>
   </main>
 
   <!-- ───────────────────── FOOTER / PLAYER ───────────────────── -->
   <footer>
     <div class="container">
+      <button id="loopToggle" title="Toggle loop">🔁</button>
       <audio id="player" controls></audio>
       <label>
         Speed
@@ -56,25 +68,26 @@
     });
     if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
 
-    /* -------- Player speed -------- */
+    /* -------- Player + controls -------- */
     const player = document.getElementById('player');
+
+    // playback speed
     document.getElementById('speedSelect').addEventListener('change', e => {
       player.playbackRate = parseFloat(e.target.value);
     });
 
+    // loop toggle
+    const loopBtn = document.getElementById('loopToggle');
+    loopBtn.addEventListener('click', () => {
+      player.loop = !player.loop;
+      loopBtn.classList.toggle('active', player.loop);
+    });
+
     /* -------- Track catalogue -------- */
     const tracks = [
-      {
-        title: "Math Focus Beats",
-        subject: "Maths",
-        url: "focus-beats.mp3"  // put file in repo root or /audio/
-      },
-      {
-        title: "English Lock‑In",
-        subject: "English",
-        url: "SUPER FOCUS [ Flow State Music ] Binaural Beats 40Hz ★ Ambient Study Music to Concentrate (mp3cut.net).mp3"
-      }
-      // Add more tracks here as needed
+      { title: 'Math Focus Beats',  subject: 'Maths',   url: 'focus-beats.mp3' },
+      { title: 'English Lock‑In',   subject: 'English', url: 'SUPER FOCUS [ Flow State Music ] Binaural Beats 40Hz ★ Ambient Study Music to Concentrate (mp3cut.net).mp3' }
+      // add more tracks as needed
     ];
 
     /* -------- Render helpers -------- */
@@ -86,56 +99,43 @@
     function buildFilters() {
       const filtersEl = document.getElementById('filters');
       filtersEl.innerHTML = '';
-
-      // "All" button first
-      const allBtn = document.createElement('button');
-      allBtn.textContent = 'All';
-      allBtn.className = 'filter-btn active';
-      allBtn.addEventListener('click', () => {
-        setActiveFilter(allBtn);
-        showSubject();
-      });
+      const allBtn = makeFilterBtn('All', () => showSubject());
+      allBtn.classList.add('active');
       filtersEl.appendChild(allBtn);
-
-      // Unique subject buttons
-      const subjects = [...new Set(tracks.map(t => t.subject))];
-      subjects.forEach(sub => {
-        const btn = document.createElement('button');
-        btn.textContent = sub;
-        btn.className = 'filter-btn';
-        btn.addEventListener('click', () => {
-          setActiveFilter(btn);
-          showSubject(sub);
-        });
-        filtersEl.appendChild(btn);
+      [...new Set(tracks.map(t => t.subject))].forEach(sub => {
+        filtersEl.appendChild(makeFilterBtn(sub, () => showSubject(sub)));
       });
     }
 
-    function setActiveFilter(selectedBtn) {
-      document.querySelectorAll('#filters .filter-btn').forEach(btn => btn.classList.remove('active'));
-      selectedBtn.classList.add('active');
+    function makeFilterBtn(text, onClick) {
+      const btn = document.createElement('button');
+      btn.textContent = text;
+      btn.className = 'filter-btn';
+      btn.onclick = () => {
+        document.querySelectorAll('#filters .filter-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        onClick();
+      };
+      return btn;
     }
 
     function showSubject(filter) {
-      const tracksEl = document.getElementById('tracks');
-      tracksEl.innerHTML = '';
-
-      tracks
-        .filter(t => !filter || t.subject === filter)
-        .forEach(track => {
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `
-            <h3 class="card-title">${track.title}</h3>
-            <p class="card-sub">${track.subject}</p>
-            <button class="play-btn">Play</button>
-          `;
-          card.querySelector('button').addEventListener('click', () => {
-            player.src = track.url;
-            player.play();
-          });
-          tracksEl.appendChild(card);
+      const container = document.getElementById('tracks');
+      container.innerHTML = '';
+      tracks.filter(t=>!filter||t.subject===filter).forEach(track=>{
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <h3 class="card-title">${track.title}</h3>
+          <p class="card-sub">${track.subject}</p>
+          <button class="play-btn">Play</button>
+        `;
+        card.querySelector('button').addEventListener('click', ()=>{
+          player.src = track.url;
+          player.play();
         });
+        container.appendChild(card);
+      });
     }
 
     render();
