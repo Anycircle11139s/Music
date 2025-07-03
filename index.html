@@ -4,27 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Study Music Library</title>
-  <!-- Prevent aggressive caching while you iterate -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-
   <link rel="stylesheet" href="style.css" />
-  <!-- Local style tweak for loop button so we don't touch style.css again -->
-  <style>
-    #loopToggle{
-      display:flex;align-items:center;justify-content:center;
-      width:2.25rem;height:2.25rem;
-      border:1px solid var(--clr-border);
-      background:transparent;
-      color:var(--clr-text);
-      border-radius:var(--radius);
-      cursor:pointer;
-      transition:var(--transition);
-    }
-    #loopToggle:hover,
-    #loopToggle.active{background:var(--clr-primary);color:#fff}
-  </style>
 </head>
 <body>
   <!-- ───────────────────── HEADER ───────────────────── -->
@@ -32,6 +15,14 @@
     <div class="container">
       <h1>Study Music Library</h1>
       <button id="darkToggle" class="icon-btn" title="Toggle dark mode">🌙</button>
+    </div>
+    <div class="container" id="topTools">
+      <input id="searchBox" type="search" placeholder="Search tracks…" />
+      <select id="sortSelect">
+        <option value="alpha">Title A→Z</option>
+        <option value="alpha-desc">Title Z→A</option>
+        <option value="subject">By Subject</option>
+      </select>
     </div>
   </header>
 
@@ -41,20 +32,21 @@
     <div id="tracks"></div>
   </main>
 
-  <!-- ───────────────────── FOOTER / PLAYER ───────────────────── -->
+  <!-- ───────────────────── FOOTER / CUSTOM PLAYER ───────────────────── -->
   <footer>
     <div class="container">
+      <button id="playPause" title="Play/Pause">▶️</button>
+      <span class="time" id="currentTime">0:00</span>
+      <div id="progressBar"><div id="progressFill"></div></div>
+      <span class="time" id="totalTime">0:00</span>
       <button id="loopToggle" title="Toggle loop">🔁</button>
-      <audio id="player" controls></audio>
-      <label>
-        Speed
-        <select id="speedSelect">
-          <option value="0.75">0.75×</option>
-          <option value="1" selected>1×</option>
-          <option value="1.25">1.25×</option>
-          <option value="1.5">1.5×</option>
-        </select>
-      </label>
+      <input id="volumeRange" type="range" min="0" max="1" step="0.05" value="1" title="Volume" />
+      <select id="speedSelect" title="Speed">
+        <option value="0.75">0.75×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.25">1.25×</option>
+        <option value="1.5">1.5×</option>
+      </select>
     </div>
   </footer>
 
@@ -62,83 +54,160 @@
   <script>
     /* -------- Dark‑mode toggle -------- */
     const darkToggle = document.getElementById('darkToggle');
-    darkToggle.addEventListener('click', () => {
+    darkToggle.onclick = () => {
       document.documentElement.classList.toggle('dark');
       localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-    });
+    };
     if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
 
-    /* -------- Player + controls -------- */
-    const player = document.getElementById('player');
+    /* -------- Elements -------- */
+    const player = new Audio();
+    const playBtn   = document.getElementById('playPause');
+    const loopBtn   = document.getElementById('loopToggle');
+    const progBar   = document.getElementById('progressBar');
+    const progFill  = document.getElementById('progressFill');
+    const curTimeEl = document.getElementById('currentTime');
+    const totTimeEl = document.getElementById('totalTime');
 
-    // playback speed
-    document.getElementById('speedSelect').addEventListener('change', e => {
-      player.playbackRate = parseFloat(e.target.value);
-    });
+    // volume & speed
+    document.getElementById('volumeRange').oninput = e => player.volume = e.target.value;
+    document.getElementById('speedSelect').oninput = e => player.playbackRate = parseFloat(e.target.value);
+
+    // play / pause toggle
+    playBtn.onclick = () => {
+      if (player.src) {
+        player.paused ? player.play() : player.pause();
+      }
+    };
+    player.onplay  = () => playBtn.textContent = '⏸️';
+    player.onpause = () => playBtn.textContent = '▶️';
 
     // loop toggle
-    const loopBtn = document.getElementById('loopToggle');
-    loopBtn.addEventListener('click', () => {
+    loopBtn.onclick = () => {
       player.loop = !player.loop;
       loopBtn.classList.toggle('active', player.loop);
+    };
+
+    // progress bar update
+    player.ontimeupdate = () => {
+      const pct = (player.currentTime / player.duration) * 100;
+      progFill.style.width = pct + '%';
+      curTimeEl.textContent = formatTime(player.currentTime);
+    };
+    player.onloadedmetadata = () => {
+      totTimeEl.textContent = formatTime(player.duration);
+    };
+    progBar.onclick = e => {
+      const rect = progBar.getBoundingClientRect();
+      const pct = (e.clientX - rect.left) / rect.width;
+      player.currentTime = pct * player.duration;
+    };
+
+    // keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if (e.target.matches('input, select')) return; // ignore form inputs
+      if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
+      if (e.key.toLowerCase() === 'l') loopBtn.click();
+      if (e.code === 'ArrowRight') player.currentTime = Math.min(player.duration, player.currentTime + 5);
+      if (e.code === 'ArrowLeft')  player.currentTime = Math.max(0, player.currentTime - 5);
     });
 
     /* -------- Track catalogue -------- */
     const tracks = [
-      { title: 'Math Focus Beats',  subject: 'Maths',   url: 'focus-beats.mp3' },
-      { title: 'English Lock‑In',   subject: 'English', url: 'SUPER FOCUS [ Flow State Music ] Binaural Beats 40Hz ★ Ambient Study Music to Concentrate (mp3cut.net).mp3' }
-      // add more tracks as needed
+      { title: 'Math Focus Beats',  subject: 'Maths',   url: 'focus-beats.mp3', added: '2025-06-01' },
+      { title: 'English Lock‑In',   subject: 'English', url: 'SUPER FOCUS [ Flow State Music ] Binaural Beats 40Hz ★ Ambient Study Music to Concentrate (mp3cut.net).mp3', added: '2025-07-01' }
     ];
+    // store metadata durations
+    const durationCache = {};
 
     /* -------- Render helpers -------- */
-    function render() {
-      buildFilters();
-      showSubject();
-    }
+    const filtersEl = document.getElementById('filters');
+    const tracksEl  = document.getElementById('tracks');
+    const searchBox = document.getElementById('searchBox');
+    const sortSel   = document.getElementById('sortSelect');
+
+    searchBox.oninput = renderList;
+    sortSel.onchange  = renderList;
 
     function buildFilters() {
-      const filtersEl = document.getElementById('filters');
       filtersEl.innerHTML = '';
-      const allBtn = makeFilterBtn('All', () => showSubject());
+      const allBtn = makeFilterBtn('All');
       allBtn.classList.add('active');
       filtersEl.appendChild(allBtn);
-      [...new Set(tracks.map(t => t.subject))].forEach(sub => {
-        filtersEl.appendChild(makeFilterBtn(sub, () => showSubject(sub)));
-      });
+      ;[...new Set(tracks.map(t => t.subject))].forEach(sub => filtersEl.appendChild(makeFilterBtn(sub)));
     }
-
-    function makeFilterBtn(text, onClick) {
+    function makeFilterBtn(text) {
       const btn = document.createElement('button');
       btn.textContent = text;
       btn.className = 'filter-btn';
       btn.onclick = () => {
         document.querySelectorAll('#filters .filter-btn').forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
-        onClick();
+        renderList();
       };
       return btn;
     }
 
-    function showSubject(filter) {
-      const container = document.getElementById('tracks');
-      container.innerHTML = '';
-      tracks.filter(t=>!filter||t.subject===filter).forEach(track=>{
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <h3 class="card-title">${track.title}</h3>
-          <p class="card-sub">${track.subject}</p>
-          <button class="play-btn">Play</button>
-        `;
-        card.querySelector('button').addEventListener('click', ()=>{
-          player.src = track.url;
-          player.play();
-        });
-        container.appendChild(card);
-      });
+    function renderList() {
+      const activeFilter = document.querySelector('#filters .filter-btn.active')?.textContent;
+      const q = searchBox.value.toLowerCase();
+      let list = tracks.filter(t => (!activeFilter || activeFilter==='All' || t.subject===activeFilter) && t.title.toLowerCase().includes(q));
+      switch(sortSel.value){
+        case 'alpha':      list.sort((a,b)=>a.title.localeCompare(b.title)); break;
+        case 'alpha-desc': list.sort((a,b)=>b.title.localeCompare(a.title)); break;
+        case 'subject':    list.sort((a,b)=>a.subject.localeCompare(b.subject)||a.title.localeCompare(b.title)); break;
+      }
+      tracksEl.innerHTML='';
+      list.forEach(track=>tracksEl.appendChild(buildCard(track)));
     }
 
-    render();
+    function buildCard(track){
+      const card = document.createElement('div');
+      card.className='card';
+      card.innerHTML=`<div class="card-progress" id="prog-${track.title}"></div>
+        <h3 class="card-title">${track.title}</h3>
+        <p class="card-sub">${track.subject}</p>
+        <p class="card-duration" id="dur-${track.title}">--:--</p>
+        <button class="play-btn">▶️ Play</button>`;
+      const btn = card.querySelector('button');
+      btn.onclick = ()=>{
+        playTrack(track, card);
+      };
+      // fetch duration once
+      if(!durationCache[track.url]){
+        const tmp=new Audio(track.url);
+        tmp.onloadedmetadata=()=>{
+          durationCache[track.url]=tmp.duration;
+          card.querySelector(`#dur-${track.title}`).textContent=formatTime(tmp.duration);
+        };
+      }else{
+        card.querySelector(`#dur-${track.title}`).textContent=formatTime(durationCache[track.url]);
+      }
+      return card;
+    }
+
+    function playTrack(track, card){
+      player.src=track.url;
+      player.play();
+      document.querySelectorAll('.card-progress').forEach(el=>el.style.width='0%');
+      player.ontimeupdate=()=>{
+        const pct=(player.currentTime/player.duration)*100;
+        card.querySelector('.card-progress').style.width=pct+'%';
+        curTimeEl.textContent=formatTime(player.currentTime);
+        totTimeEl.textContent=formatTime(player.duration);
+        progFill.style.width=pct+'%';
+      };
+    }
+
+    function formatTime(sec){
+      if(!sec||isNaN(sec))return '0:00';
+      const m=Math.floor(sec/60);
+      const s=Math.floor(sec%60).toString().padStart(2,'0');
+      return `${m}:${s}`;
+    }
+
+    buildFilters();
+    renderList();
   </script>
 </body>
 </html>
