@@ -8,16 +8,35 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <link rel="stylesheet" href="style.css" />
+  <style>
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(270deg, #e0f7fa, #fce4ec, #e8f5e9);
+      background-size: 600% 600%;
+      animation: gradientShift 30s ease infinite;
+      z-index: -1;
+      opacity: 0.3;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    #loopToggle.active { background-color: #c8e6c9; border-radius: 4px; }
+    .card { user-select: none; }
+    #tracks { display: flex; flex-wrap: wrap; gap: 1rem; }
+  </style>
 </head>
 <body>
-  <!-- ────────── HEADER ────────── -->
   <header>
     <div class="container">
       <h1>Study Music Library</h1>
       <button id="darkToggle" class="icon-btn" title="Toggle dark mode">🌙</button>
     </div>
     <div class="container" id="topTools">
-      <input id="searchBox" type="search" placeholder="Search tracks…" />
+      <input id="searchBox" type="search" placeholder="Search tracks…" autocomplete="off" />
       <select id="sortSelect">
         <option value="alpha">Title A→Z</option>
         <option value="alpha-desc">Title Z→A</option>
@@ -25,14 +44,10 @@
       </select>
     </div>
   </header>
-
-  <!-- ────────── MAIN ────────── -->
   <main class="container">
     <div id="filters"></div>
     <div id="tracks"></div>
   </main>
-
-  <!-- ────────── FOOTER / PLAYER ────────── -->
   <footer>
     <div class="container">
       <button id="playPause" title="Play/Pause">▷</button>
@@ -49,45 +64,49 @@
       </select>
     </div>
   </footer>
-
-  <!-- ────────── SCRIPT ────────── -->
   <script>
-    /* Utility */
-    const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const tracks = [
+      { title: 'Math Focus Beats', subject: 'Maths', url: 'focus-beats.mp3' },
+      { title: 'English Lock‑In', subject: 'English', url: 'SUPER FOCUS [ Flow State Music ] Binaural Beats 40Hz ★ Ambient Study Music to Concentrate (mp3cut.net).mp3' },
+      { title: 'Tronic Music - Math', subject: 'Maths', url: 'Tron_ Legacy - Ultimate Relaxing Suite (mp3cut.net) (3).mp3' },
+      { title: 'History (Calm)', subject: 'History', url: 'Fur Elise - Ocean Sounds - 1 Hour Relaxation - Beethoven - Study or Sleep - Peaceful - Beautiful (mp3cut.net).mp3' },
+      { title: 'History (Sharper)', subject: 'History', url: '1 Hour of  Turkish March Piano Loop by Mozart for Relaxation, Work, Study and BGM (mp3cut.net) (1).mp3' },
+      { title: 'Classical Music', subject: 'History', url: 'Saint-Saëns - The Swan _ Relaxing Classical Cello and Piano Music _ 1 HOUR (mp3cut.net).mp3' },
+      { title: 'Electronic - Math', subject: 'Maths', url: 'SpotiDownloader.com - Futuristic - Vivaldi Verdes.mp3' },
+      { title: 'Science - Space', subject: 'Science', url: 'SpotiDown.App - Moonlit Breaths - Restful Minds.mp3' }
+    ];
+    const slugify = str => str.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const durCache = {};
 
-    /* Theme toggle */
+    const player = new Audio();
+    const playBtn = document.getElementById('playPause');
+    const loopBtn = document.getElementById('loopToggle');
+    const progBar = document.getElementById('progressBar');
+    const progFill = document.getElementById('progressFill');
+    const curTime = document.getElementById('currentTime');
+    const totTime = document.getElementById('totalTime');
+    const searchBox = document.getElementById('searchBox');
+    const sortSel = document.getElementById('sortSelect');
+    const filters = document.getElementById('filters');
+    const trackGrid = document.getElementById('tracks');
+
     darkToggle.onclick = () => {
       document.documentElement.classList.toggle('dark');
       localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     };
     if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
 
-    /* Player setup */
-    const player   = new Audio();
-    const playBtn  = playPause;
-    const loopBtn  = loopToggle;
-    const progBar  = progressBar;
-    const progFill = progressFill;
-    const curTime  = currentTime;
-    const totTime  = totalTime;
-
-    volumeRange.oninput = e => player.volume       = e.target.value;
+    volumeRange.oninput = e => player.volume = e.target.value;
     speedSelect.oninput = e => player.playbackRate = parseFloat(e.target.value);
-
     playBtn.onclick = () => player.src && (player.paused ? player.play() : player.pause());
-    player.onplay   = () => playBtn.textContent = '❚❚';
-    player.onpause  = () => playBtn.textContent = '▷';
+    player.onplay = () => playBtn.textContent = '❚❚';
+    player.onpause = () => playBtn.textContent = '▷';
 
-    /* Loop button (native + fallback) */
     loopBtn.onclick = () => {
       player.loop = !player.loop;
       loopBtn.classList.toggle('active', player.loop);
     };
-    player.addEventListener('ended', () => {
-      if (player.loop) { player.currentTime = 0; player.play(); }
-    });
 
-    /* Progress bar */
     player.ontimeupdate = () => {
       if (!player.duration) return;
       const pct = (player.currentTime / player.duration) * 100;
@@ -96,11 +115,10 @@
     };
     player.onloadedmetadata = () => totTime.textContent = fmt(player.duration);
     progBar.onclick = e => {
-      const {left,width} = progBar.getBoundingClientRect();
+      const {left, width} = progBar.getBoundingClientRect();
       player.currentTime = ((e.clientX - left) / width) * player.duration;
     };
 
-    /* Shortcuts */
     document.addEventListener('keydown', e => {
       if (e.target.matches('input, select')) return;
       if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
@@ -109,90 +127,116 @@
       if (e.code === 'ArrowLeft')  player.currentTime = Math.max(0, player.currentTime - 5);
     });
 
-    /* Track data */
-    const tracks = [
-      { title:'Math Focus Beats',   subject:'Maths',   url:'focus-beats.mp3' },
-      { title:'English Lock‑In',    subject:'English', url:'SUPER FOCUS [ Flow State Music ] Binaural Beats 40Hz ★ Ambient Study Music to Concentrate (mp3cut.net).mp3' },
-      { title:'Tronic Music - Math',subject:'Maths',   url:'Tron_ Legacy - Ultimate Relaxing Suite (mp3cut.net) (3).mp3' },
-      { title:'History (Calm)',     subject:'History', url:'Fur Elise - Ocean Sounds - 1 Hour Relaxation - Beethoven - Study or Sleep - Peaceful - Beautiful (mp3cut.net).mp3' },
-      { title:'History (Sharper)',  subject:'History', url:'1 Hour of  Turkish March Piano Loop by Mozart for Relaxation, Work, Study and BGM (mp3cut.net) (1).mp3' },
-      { title:'Classical Music',    subject:'History', url:'Saint-Saëns - The Swan _ Relaxing Classical Cello and Piano Music _ 1 HOUR (mp3cut.net).mp3' },
-      { title:'Electronic - Math',  subject:'Maths',   url:'SpotiDownloader.com - Futuristic - Vivaldi Verdes.mp3' },
-      { title:'Science - Space',    subject:'Science', url:'SpotiDown.App - Moonlit Breaths - Restful Minds.mp3' }
-    ];
-    const durCache = {};
-
-    /* Filter + list rendering */
-    const filters   = document.getElementById('filters');
-    const trackGrid = document.getElementById('tracks');
-    const searchBox = document.getElementById('searchBox');
-    const sortSel   = document.getElementById('sortSelect');
-
     searchBox.oninput = render;
-    sortSel.onchange  = render;
+    sortSel.onchange = render;
 
-    function makeFilter(label) {
+    function makeFilter(text) {
       const b = document.createElement('button');
-      b.textContent = label; b.className = 'filter-btn';
-      b.onclick = () => { document.querySelectorAll('#filters .filter-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); render(); };
+      b.textContent = text;
+      b.className = 'filter-btn';
+      b.onclick = () => {
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        b.classList.add('active');
+        render();
+      };
       return b;
     }
+
     function initFilters() {
-      filters.innerHTML='';
-      const all = makeFilter('All'); all.classList.add('active'); filters.appendChild(all);
-      [...new Set(tracks.map(t=>t.subject))].forEach(s=>filters.appendChild(makeFilter(s)));
+      filters.innerHTML = '';
+      const all = makeFilter('All');
+      all.classList.add('active');
+      filters.appendChild(all);
+      [...new Set(tracks.map(t => t.subject))].forEach(sub => filters.appendChild(makeFilter(sub)));
     }
 
     function render() {
-      const active = document.querySelector('#filters .filter-btn.active')?.textContent;
+      const active = document.querySelector('.filter-btn.active')?.textContent;
       const q = searchBox.value.toLowerCase();
-      let list = tracks.filter(t =>
-        (active==='All'||!active||t.subject===active) && t.title.toLowerCase().includes(q)
-      );
-      list.sort((a,b)=>{
-        if (sortSel.value==='alpha')       return a.title.localeCompare(b.title);
-        if (sortSel.value==='alpha-desc')  return b.title.localeCompare(a.title);
-        return a.subject.localeCompare(b.subject)||a.title.localeCompare(b.title);
+      let list = tracks.filter(t => (!active || active === 'All' || t.subject === active) && t.title.toLowerCase().includes(q));
+      list.sort((a, b) => {
+        if (sortSel.value === 'alpha') return a.title.localeCompare(b.title);
+        if (sortSel.value === 'alpha-desc') return b.title.localeCompare(a.title);
+        return a.subject.localeCompare(b.subject) || a.title.localeCompare(b.title);
       });
-      trackGrid.innerHTML='';
-      list.forEach(t=>trackGrid.appendChild(card(t)));
+      trackGrid.innerHTML = '';
+      list.forEach(t => trackGrid.appendChild(makeCard(t)));
+      enableDragSort();
     }
 
-    function card(track) {
+    function makeCard(track) {
       const id = slugify(track.title);
-      const c  = document.createElement('div');
-      c.className='card';
-      c.innerHTML = `
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.draggable = true;
+      div.innerHTML = `
         <div class="card-progress" id="prog-${id}"></div>
         <h3 class="card-title">${track.title}</h3>
         <p class="card-sub">${track.subject}</p>
         <p class="card-duration" id="dur-${id}">--:--</p>
         <button class="play-btn">▷ Play</button>`;
-      c.querySelector('button').onclick = () => play(track, id);
+      div.querySelector('button').onclick = () => play(track, id);
+
       if (!durCache[track.url]) {
-        const tmp=new Audio(track.url);
-        tmp.onloadedmetadata = () => { durCache[track.url]=tmp.duration; c.querySelector(`#dur-${id}`).textContent=fmt(tmp.duration); };
-      } else c.querySelector(`#dur-${id}`).textContent = fmt(durCache[track.url]);
-      return c;
+        const tmp = new Audio(track.url);
+        tmp.onloadedmetadata = () => {
+          durCache[track.url] = tmp.duration;
+          div.querySelector(`#dur-${id}`).textContent = fmt(tmp.duration);
+        };
+      } else {
+        div.querySelector(`#dur-${id}`).textContent = fmt(durCache[track.url]);
+      }
+      return div;
     }
 
-    function play(track,id){
+    function play(track, id) {
       player.src = track.url;
       player.play();
-      document.querySelectorAll('.card-progress').forEach(p=>p.style.width='0%');
+      document.querySelectorAll('.card-progress').forEach(p => p.style.width = '0%');
       player.ontimeupdate = () => {
         if (!player.duration) return;
-        const pct = (player.currentTime/player.duration)*100;
-        document.getElementById(`prog-${id}`).style.width = pct+'%';
-        progFill.style.width = pct+'%';
+        const pct = (player.currentTime / player.duration) * 100;
+        document.getElementById(`prog-${id}`).style.width = pct + '%';
+        progFill.style.width = pct + '%';
         curTime.textContent = fmt(player.currentTime);
         totTime.textContent = fmt(player.duration);
       };
     }
 
-    const fmt = s => isNaN(s)?'0:00':`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+    function fmt(s) {
+      if (!s || isNaN(s)) return '0:00';
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60).toString().padStart(2, '0');
+      return `${m}:${sec}`;
+    }
 
-    /* init */
+    function enableDragSort() {
+      let dragSrc;
+      trackGrid.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('dragstart', e => {
+          dragSrc = card;
+          card.classList.add('dragging');
+        });
+        card.addEventListener('dragend', e => {
+          card.classList.remove('dragging');
+        });
+        card.addEventListener('dragover', e => e.preventDefault());
+        card.addEventListener('drop', e => {
+          e.preventDefault();
+          if (dragSrc && dragSrc !== card) {
+            const children = [...trackGrid.children];
+            const srcIdx = children.indexOf(dragSrc);
+            const tgtIdx = children.indexOf(card);
+            if (srcIdx < tgtIdx) {
+              trackGrid.insertBefore(dragSrc, card.nextSibling);
+            } else {
+              trackGrid.insertBefore(dragSrc, card);
+            }
+          }
+        });
+      });
+    }
+
     initFilters();
     render();
   </script>
