@@ -27,6 +27,16 @@
     #loopToggle.active { background-color: #c8e6c9; border-radius: 4px; }
     .card { user-select: none; }
     #tracks { display: flex; flex-wrap: wrap; gap: 1rem; }
+    .card[draggable="true"] { cursor: move; }
+    .upload-label {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: #e0e0e0;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 1rem 0;
+    }
+    #fileInput { display: none; }
   </style>
 </head>
 <body>
@@ -46,7 +56,9 @@
   </header>
   <main class="container">
     <div id="filters"></div>
-    <div id="tracks"></div>
+    <label class="upload-label" for="fileInput">⬆️ Upload Your Audio</label>
+    <input type="file" id="fileInput" accept="audio/*" multiple />
+    <div id="tracks" ondragover="event.preventDefault()"></div>
   </main>
   <footer>
     <div class="container">
@@ -65,19 +77,7 @@
     </div>
   </footer>
   <script>
-    const tracks = [
-      { title: 'Math Focus Beats', subject: 'Maths', url: 'focus-beats.mp3' },
-      { title: 'English Lock‑In', subject: 'English', url: 'SUPER FOCUS [ Flow State Music ] Binaural Beats 40Hz ★ Ambient Study Music to Concentrate (mp3cut.net).mp3' },
-      { title: 'Tronic Music - Math', subject: 'Maths', url: 'Tron_ Legacy - Ultimate Relaxing Suite (mp3cut.net) (3).mp3' },
-      { title: 'History (Calm)', subject: 'History', url: 'Fur Elise - Ocean Sounds - 1 Hour Relaxation - Beethoven - Study or Sleep - Peaceful - Beautiful (mp3cut.net).mp3' },
-      { title: 'History (Sharper)', subject: 'History', url: '1 Hour of  Turkish March Piano Loop by Mozart for Relaxation, Work, Study and BGM (mp3cut.net) (1).mp3' },
-      { title: 'Classical Music', subject: 'History', url: 'Saint-Saëns - The Swan _ Relaxing Classical Cello and Piano Music _ 1 HOUR (mp3cut.net).mp3' },
-      { title: 'Electronic - Math', subject: 'Maths', url: 'SpotiDownloader.com - Futuristic - Vivaldi Verdes.mp3' },
-      { title: 'Science - Space', subject: 'Science', url: 'SpotiDown.App - Moonlit Breaths - Restful Minds.mp3' }
-    ];
-    const slugify = str => str.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const durCache = {};
-
+    const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const player = new Audio();
     const playBtn = document.getElementById('playPause');
     const loopBtn = document.getElementById('loopToggle');
@@ -85,10 +85,26 @@
     const progFill = document.getElementById('progressFill');
     const curTime = document.getElementById('currentTime');
     const totTime = document.getElementById('totalTime');
+    const volumeRange = document.getElementById('volumeRange');
+    const speedSelect = document.getElementById('speedSelect');
     const searchBox = document.getElementById('searchBox');
-    const sortSel = document.getElementById('sortSelect');
-    const filters = document.getElementById('filters');
-    const trackGrid = document.getElementById('tracks');
+    const sortSelect = document.getElementById('sortSelect');
+    const tracksEl = document.getElementById('tracks');
+    const filtersEl = document.getElementById('filters');
+    const fileInput = document.getElementById('fileInput');
+
+    let tracks = [
+      { title:'Math Focus Beats', subject:'Maths', url:'focus-beats.mp3' },
+      { title:'English Lock‑In', subject:'English', url:'SUPER FOCUS [ Flow State Music ] Binaural Beats 40Hz ★ Ambient Study Music to Concentrate (mp3cut.net).mp3' },
+      { title:'Tronic Music - Math', subject:'Maths', url:'Tron_ Legacy - Ultimate Relaxing Suite (mp3cut.net) (3).mp3' },
+      { title:'History (Calm)', subject:'History', url:'Fur Elise - Ocean Sounds - 1 Hour Relaxation - Beethoven - Study or Sleep - Peaceful - Beautiful (mp3cut.net).mp3' },
+      { title:'History (Sharper)', subject:'History', url:'1 Hour of  Turkish March Piano Loop by Mozart for Relaxation, Work, Study and BGM (mp3cut.net) (1).mp3' },
+      { title:'Classical Music', subject:'History', url:'Saint-Saëns - The Swan _ Relaxing Classical Cello and Piano Music _ 1 HOUR (mp3cut.net).mp3' },
+      { title:'Electronic - Math', subject:'Maths', url:'SpotiDownloader.com - Futuristic - Vivaldi Verdes.mp3' },
+      { title:'Science - Space', subject:'Science', url:'SpotiDown.App - Moonlit Breaths - Restful Minds.mp3' }
+    ];
+    const durCache = {};
+    let currentId = null;
 
     darkToggle.onclick = () => {
       document.documentElement.classList.toggle('dark');
@@ -96,148 +112,131 @@
     };
     if (localStorage.theme === 'dark') document.documentElement.classList.add('dark');
 
-    volumeRange.oninput = e => player.volume = e.target.value;
-    speedSelect.oninput = e => player.playbackRate = parseFloat(e.target.value);
-    playBtn.onclick = () => player.src && (player.paused ? player.play() : player.pause());
-    player.onplay = () => playBtn.textContent = '❚❚';
-    player.onpause = () => playBtn.textContent = '▷';
+    fileInput.addEventListener('change', e => {
+      [...e.target.files].forEach(file => {
+        const url = URL.createObjectURL(file);
+        const title = file.name.replace(/\.[^/.]+$/, "");
+        tracks.push({ title, subject: 'Uploaded', url });
+      });
+      render();
+    });
 
+    playBtn.onclick = () => {
+      if (!player.src) return;
+      player.paused ? player.play() : player.pause();
+    };
     loopBtn.onclick = () => {
       player.loop = !player.loop;
       loopBtn.classList.toggle('active', player.loop);
+    };
+    volumeRange.oninput = e => player.volume = e.target.value;
+    speedSelect.oninput = e => player.playbackRate = parseFloat(e.target.value);
+    progBar.onclick = e => {
+      const rect = progBar.getBoundingClientRect();
+      const pct = (e.clientX - rect.left) / rect.width;
+      player.currentTime = pct * player.duration;
     };
 
     player.ontimeupdate = () => {
       if (!player.duration) return;
       const pct = (player.currentTime / player.duration) * 100;
       progFill.style.width = pct + '%';
-      curTime.textContent = fmt(player.currentTime);
-    };
-    player.onloadedmetadata = () => totTime.textContent = fmt(player.duration);
-    progBar.onclick = e => {
-      const {left, width} = progBar.getBoundingClientRect();
-      player.currentTime = ((e.clientX - left) / width) * player.duration;
+      curTime.textContent = format(player.currentTime);
+      totTime.textContent = format(player.duration);
+      if (currentId) document.getElementById(`prog-${currentId}`).style.width = pct + '%';
     };
 
-    document.addEventListener('keydown', e => {
-      if (e.target.matches('input, select')) return;
-      if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
-      if (e.key.toLowerCase() === 'l') loopBtn.click();
-      if (e.code === 'ArrowRight') player.currentTime = Math.min(player.duration, player.currentTime + 5);
-      if (e.code === 'ArrowLeft')  player.currentTime = Math.max(0, player.currentTime - 5);
-    });
-
-    searchBox.oninput = render;
-    sortSel.onchange = render;
-
-    function makeFilter(text) {
-      const b = document.createElement('button');
-      b.textContent = text;
-      b.className = 'filter-btn';
-      b.onclick = () => {
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        b.classList.add('active');
-        render();
-      };
-      return b;
-    }
-
-    function initFilters() {
-      filters.innerHTML = '';
-      const all = makeFilter('All');
-      all.classList.add('active');
-      filters.appendChild(all);
-      [...new Set(tracks.map(t => t.subject))].forEach(sub => filters.appendChild(makeFilter(sub)));
-    }
-
-    function render() {
-      const active = document.querySelector('.filter-btn.active')?.textContent;
-      const q = searchBox.value.toLowerCase();
-      let list = tracks.filter(t => (!active || active === 'All' || t.subject === active) && t.title.toLowerCase().includes(q));
-      list.sort((a, b) => {
-        if (sortSel.value === 'alpha') return a.title.localeCompare(b.title);
-        if (sortSel.value === 'alpha-desc') return b.title.localeCompare(a.title);
-        return a.subject.localeCompare(b.subject) || a.title.localeCompare(b.title);
-      });
-      trackGrid.innerHTML = '';
-      list.forEach(t => trackGrid.appendChild(makeCard(t)));
-      enableDragSort();
-    }
-
-    function makeCard(track) {
-      const id = slugify(track.title);
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.draggable = true;
-      div.innerHTML = `
-        <div class="card-progress" id="prog-${id}"></div>
-        <h3 class="card-title">${track.title}</h3>
-        <p class="card-sub">${track.subject}</p>
-        <p class="card-duration" id="dur-${id}">--:--</p>
-        <button class="play-btn">▷ Play</button>`;
-      div.querySelector('button').onclick = () => play(track, id);
-
-      if (!durCache[track.url]) {
-        const tmp = new Audio(track.url);
-        tmp.onloadedmetadata = () => {
-          durCache[track.url] = tmp.duration;
-          div.querySelector(`#dur-${id}`).textContent = fmt(tmp.duration);
-        };
-      } else {
-        div.querySelector(`#dur-${id}`).textContent = fmt(durCache[track.url]);
-      }
-      return div;
+    function format(s) {
+      return isNaN(s) ? '0:00' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
     }
 
     function play(track, id) {
       player.src = track.url;
       player.play();
+      currentId = id;
       document.querySelectorAll('.card-progress').forEach(p => p.style.width = '0%');
-      player.ontimeupdate = () => {
-        if (!player.duration) return;
-        const pct = (player.currentTime / player.duration) * 100;
-        document.getElementById(`prog-${id}`).style.width = pct + '%';
-        progFill.style.width = pct + '%';
-        curTime.textContent = fmt(player.currentTime);
-        totTime.textContent = fmt(player.duration);
+    }
+
+    function makeCard(track, index) {
+      const id = slugify(track.title) + '-' + index;
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.draggable = true;
+      card.dataset.index = index;
+      card.innerHTML = `
+        <div class="card-progress" id="prog-${id}"></div>
+        <h3 class="card-title">${track.title}</h3>
+        <p class="card-sub">${track.subject}</p>
+        <p class="card-duration" id="dur-${id}">--:--</p>
+        <button class="play-btn">▷ Play</button>`;
+      card.querySelector('button').onclick = () => play(track, id);
+      card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', index));
+      card.addEventListener('drop', e => {
+        e.preventDefault();
+        const from = +e.dataTransfer.getData('text/plain');
+        const to = +card.dataset.index;
+        if (from !== to) {
+          const moved = tracks.splice(from, 1)[0];
+          tracks.splice(to, 0, moved);
+          render();
+        }
+      });
+      card.addEventListener('dragover', e => e.preventDefault());
+      if (!durCache[track.url]) {
+        const tmp = new Audio(track.url);
+        tmp.onloadedmetadata = () => {
+          durCache[track.url] = tmp.duration;
+          const durEl = document.getElementById(`dur-${id}`);
+          if (durEl) durEl.textContent = format(tmp.duration);
+        };
+      } else {
+        card.querySelector(`#dur-${id}`).textContent = format(durCache[track.url]);
+      }
+      return card;
+    }
+
+    function render() {
+      const q = searchBox.value.toLowerCase();
+      const sort = sortSelect.value;
+      const activeFilter = filtersEl.querySelector('.active')?.textContent;
+      let list = tracks.map((t, i) => ({ ...t, index: i }));
+      if (activeFilter && activeFilter !== 'All') list = list.filter(t => t.subject === activeFilter);
+      if (q) list = list.filter(t => t.title.toLowerCase().includes(q));
+      if (sort === 'alpha') list.sort((a, b) => a.title.localeCompare(b.title));
+      else if (sort === 'alpha-desc') list.sort((a, b) => b.title.localeCompare(a.title));
+      else list.sort((a, b) => a.subject.localeCompare(b.subject));
+      tracksEl.innerHTML = '';
+      list.forEach(t => tracksEl.appendChild(makeCard(t, t.index)));
+    }
+
+    function buildFilters() {
+      filtersEl.innerHTML = '';
+      const all = document.createElement('button');
+      all.textContent = 'All';
+      all.className = 'filter-btn active';
+      all.onclick = () => {
+        filtersEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        all.classList.add('active');
+        render();
       };
-    }
-
-    function fmt(s) {
-      if (!s || isNaN(s)) return '0:00';
-      const m = Math.floor(s / 60);
-      const sec = Math.floor(s % 60).toString().padStart(2, '0');
-      return `${m}:${sec}`;
-    }
-
-    function enableDragSort() {
-      let dragSrc;
-      trackGrid.querySelectorAll('.card').forEach(card => {
-        card.addEventListener('dragstart', e => {
-          dragSrc = card;
-          card.classList.add('dragging');
-        });
-        card.addEventListener('dragend', e => {
-          card.classList.remove('dragging');
-        });
-        card.addEventListener('dragover', e => e.preventDefault());
-        card.addEventListener('drop', e => {
-          e.preventDefault();
-          if (dragSrc && dragSrc !== card) {
-            const children = [...trackGrid.children];
-            const srcIdx = children.indexOf(dragSrc);
-            const tgtIdx = children.indexOf(card);
-            if (srcIdx < tgtIdx) {
-              trackGrid.insertBefore(dragSrc, card.nextSibling);
-            } else {
-              trackGrid.insertBefore(dragSrc, card);
-            }
-          }
-        });
+      filtersEl.appendChild(all);
+      [...new Set(tracks.map(t => t.subject))].forEach(sub => {
+        const btn = document.createElement('button');
+        btn.textContent = sub;
+        btn.className = 'filter-btn';
+        btn.onclick = () => {
+          filtersEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          render();
+        };
+        filtersEl.appendChild(btn);
       });
     }
 
-    initFilters();
+    searchBox.oninput = render;
+    sortSelect.onchange = render;
+
+    buildFilters();
     render();
   </script>
 </body>
