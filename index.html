@@ -75,7 +75,7 @@
     speedSelect.oninput = e => player.playbackRate = parseFloat(e.target.value);
 
     playBtn.onclick = () => player.src && (player.paused ? player.play() : player.pause());
-    player.onplay   = () => playBtn.textContent = '▐▐';
+    player.onplay   = () => playBtn.textContent = '❚❚';
     player.onpause  = () => playBtn.textContent = '▷';
 
     /* Loop button (native + fallback) */
