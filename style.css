@@ -15,15 +15,15 @@ body::before {
   100% { background-position: 0% 50%; }
 }
 
-/* Dark mode background override */
+/* Colors and variables */
 :root {
   --bg-light: #e0f7fa;
   --bg-pink-light: #fce4ec;
   --bg-green-light: #e8f5e9;
 
   --bg-dark: #121212;
-  --bg-gradient-dark: linear-gradient(270deg, #0a2342, #2c003e, #004d40);
-  --bg-gradient-dark-opacity: 0.7;
+  --bg-gradient-dark: linear-gradient(270deg, #042f2f, #003c3c, #004d4d);
+  --bg-gradient-dark-opacity: 0.8;
 
   --text-light: #222222;
   --text-dark: #f0f0f0;
@@ -31,10 +31,11 @@ body::before {
   --card-bg-light: #ffffffcc;
   --card-bg-dark: #1e1e1ecc;
 
-  --btn-bg-light: #007bff;
+  /* Changed blue to teal shades for better dark mode visibility */
+  --btn-bg-light: #007bff;           /* original bright blue */
   --btn-bg-light-hover: #0056b3;
-  --btn-bg-dark: #3399ff;
-  --btn-bg-dark-hover: #007acc;
+  --btn-bg-dark: #00bfa5;            /* teal/cyan shade */
+  --btn-bg-dark-hover: #009e87;
 }
 
 /* Light theme */
@@ -91,7 +92,7 @@ h1 {
 }
 
 #darkToggle:hover {
-  color: var(--btn-bg-light-hover);
+  color: var(--btn-bg-light);
 }
 
 /* Top tools (search + sort) */
@@ -200,6 +201,8 @@ html.dark .filter-btn:hover {
   text-align: center;
   box-shadow: 0 2px 8px rgb(0 123 255 / 0.4);
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  /* Make sure it’s visible and block-level for easy clicking */
+  width: max-content;
 }
 
 .upload-label:hover {
@@ -209,12 +212,12 @@ html.dark .filter-btn:hover {
 
 html.dark .upload-label {
   background-color: var(--btn-bg-dark);
-  box-shadow: 0 2px 8px rgb(51 153 255 / 0.6);
+  box-shadow: 0 2px 8px rgb(0 191 165 / 0.7);
 }
 
 html.dark .upload-label:hover {
   background-color: var(--btn-bg-dark-hover);
-  box-shadow: 0 4px 12px rgb(0 122 204 / 0.8);
+  box-shadow: 0 4px 12px rgb(0 158 135 / 0.9);
 }
 
 #fileInput {
