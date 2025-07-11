@@ -35,11 +35,11 @@
   <!-- ────────── FOOTER / PLAYER ────────── -->
   <footer>
     <div class="container">
-      <button id="playPause" title="Play/Pause">▶️</button>
+      <button id="playPause" title="Play/Pause">▷</button>
       <span class="time" id="currentTime">0:00</span>
       <div id="progressBar"><div id="progressFill"></div></div>
       <span class="time" id="totalTime">0:00</span>
-      <button id="loopToggle" title="Toggle loop">🔁</button>
+      <button id="loopToggle" title="Toggle loop">⟳</button>
       <input id="volumeRange" type="range" min="0" max="1" step="0.05" value="1" title="Volume" />
       <select id="speedSelect" title="Speed">
         <option value="0.75">0.75×</option>
@@ -75,8 +75,8 @@
     speedSelect.oninput = e => player.playbackRate = parseFloat(e.target.value);
 
     playBtn.onclick = () => player.src && (player.paused ? player.play() : player.pause());
-    player.onplay   = () => playBtn.textContent = '⏸️';
-    player.onpause  = () => playBtn.textContent = '▶️';
+    player.onplay   = () => playBtn.textContent = '▐▐';
+    player.onpause  = () => playBtn.textContent = '▷';
 
     /* Loop button (native + fallback) */
     loopBtn.onclick = () => {
@@ -167,7 +167,7 @@
         <h3 class="card-title">${track.title}</h3>
         <p class="card-sub">${track.subject}</p>
         <p class="card-duration" id="dur-${id}">--:--</p>
-        <button class="play-btn">▶️ Play</button>`;
+        <button class="play-btn">▷ Play</button>`;
       c.querySelector('button').onclick = () => play(track, id);
       if (!durCache[track.url]) {
         const tmp=new Audio(track.url);
